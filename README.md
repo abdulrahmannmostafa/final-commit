@@ -2,7 +2,7 @@
 
 A terminal-style class archive page for Cairo University Computer Engineering, Class of 2026.
 
-The page is implemented in `grad_t1.html` and displays:
+The page is implemented in `index.html` and displays:
 - Live entries discovered from `data/`
 - Real profile cards loaded from `data/<folder>/profile.json`
 - CLI-like commands (`ls`, `cat`, `grep`, `neofetch`, etc.)
@@ -19,7 +19,7 @@ The page is implemented in `grad_t1.html` and displays:
 
 ```text
 .
-|- grad_t1.html
+|- index.html
 |- assets/
 |- data/
 |  |- index.json
@@ -31,12 +31,11 @@ The page is implemented in `grad_t1.html` and displays:
 ## Run Locally
 
 Option 1 (quick):
-- Open `grad_t1.html` directly in the browser.
+- Open `index.html` directly in the browser.
 - Ensure `data/index.json` exists (it is generated automatically in CI).
 
 Option 2 (recommended):
-- Serve the folder with any static server.
-- Open `grad_t1.html` from that local server URL.
+- visit https://cmp-26.github.io/final-commit/
 
 ## Commands In The Page
 
