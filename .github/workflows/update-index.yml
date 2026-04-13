@@ -1,0 +1,47 @@
+name: Auto-Update Index JSON
+
+# 1. Trigger the action when code is pushed to the main branch
+on:
+  push:
+    branches:
+      - main
+    # Only run if a file inside the data folder was changed
+    paths:
+      - 'data/**'
+
+# 2. Give the action permission to write back to the repo
+permissions:
+  contents: write
+
+jobs:
+  update-index:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 3. Pull down a copy of your repository to the virtual machine
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 4. Run a quick Python script to scan folders and write index.json
+      - name: Generate index.json
+        run: |
+          python -c "
+          import os, json
+          
+          data_dir = 'data'
+          # Get all items in 'data' that are directories, ignoring hidden folders/files
+          folders = [d for d in os.listdir(data_dir) if os.path.isdir(os.path.join(data_dir, d)) and not d.startswith('.')]
+          folders.sort(key=str.lower) # Sort alphabetically
+          
+          # Write the result to data/index.json
+          index_path = os.path.join(data_dir, 'index.json')
+          with open(index_path, 'w') as f:
+              json.dump({'folders': folders}, f, indent=2)
+          "
+
+      # 5. Commit and push the new index.json back to the main branch
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: auto-update index.json with new profiles"
+          file_pattern: data/index.json
