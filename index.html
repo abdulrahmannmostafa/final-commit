@@ -87,11 +87,83 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;
 .pf{color:var(--a);cursor:pointer}.pf:hover{text-decoration:underline}
 .pfd{color:var(--m);cursor:default}
 
+.countdown-wrap{display:flex;justify-content:center;margin:.8rem 0 1.1rem}
+.countdown-shell{
+  width:min(920px,100%);
+  border:1px solid var(--a);
+  background:
+    linear-gradient(140deg,rgba(23,147,209,.15),rgba(75,255,145,.08)),
+    rgba(2,12,10,.68);
+  box-shadow:0 0 0 1px rgba(75,255,145,.24) inset,0 0 28px rgba(23,147,209,.16);
+  padding:1rem 1rem 1.25rem;
+  position:relative;
+  overflow:hidden;
+  animation:countIn .45s ease-out both;
+}
+.countdown-shell::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(120deg,transparent 0%,rgba(158,255,192,.08) 48%,transparent 60%);
+  transform:translateX(-110%);
+  animation:sweep 6.5s linear infinite;
+  pointer-events:none;
+}
+.countdown-top{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;position:relative;z-index:1}
+.countdown-title{font-size:clamp(1rem,2.7vw,1.55rem);font-weight:700;letter-spacing:.07em;color:var(--gb);text-transform:uppercase}
+.countdown-target{font-size:12px;color:var(--a)}
+.countdown-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.65rem;margin-top:.85rem;position:relative;z-index:1}
+.countdown-cell{
+  border:1px solid var(--gd);
+  background:rgba(4,20,12,.72);
+  text-align:center;
+  padding:.8rem .35rem;
+}
+.countdown-cell.tick .countdown-num{animation:pop .24s ease-out}
+.countdown-num{display:block;font-size:clamp(1.85rem,7.2vw,3.65rem);line-height:1;font-weight:700;color:var(--gb);text-shadow:0 0 18px rgba(75,255,145,.24)}
+.countdown-lab{display:block;margin-top:.28rem;font-size:11px;color:var(--a);text-transform:uppercase;letter-spacing:.11em}
+.countdown-msg{
+  min-height:1.6em;
+  margin-top:.95rem;
+  text-align:center;
+  font-size:clamp(1rem,2.3vw,1.45rem);
+  color:var(--y);
+  position:relative;
+  z-index:1;
+}
+.countdown-shell.done .countdown-grid{display:none}
+.countdown-shell.done .countdown-msg{
+  margin-top:.85rem;
+  color:var(--gb);
+  font-size:clamp(1.15rem,3.8vw,2.45rem);
+  font-weight:700;
+  animation:successPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes countIn{
+  from{opacity:0;transform:translateY(10px) scale(.99)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes sweep{
+  from{transform:translateX(-110%)}
+  to{transform:translateX(120%)}
+}
+@keyframes pop{
+  0%{transform:translateY(2px) scale(.97);opacity:.72}
+  100%{transform:translateY(0) scale(1);opacity:1}
+}
+@keyframes successPulse{
+  0%,100%{text-shadow:0 0 0 rgba(158,255,192,0)}
+  50%{text-shadow:0 0 16px rgba(158,255,192,.36)}
+}
+
 @media(max-width:600px){
   .fd{grid-template-columns:1fr}.fk{text-align:left}
   .ch{flex-direction:column}
   #terminal{padding:1rem .75rem 5rem}
   .nf{flex-direction:column;gap:.5rem}
+  .countdown-top{flex-direction:column;align-items:flex-start;gap:.22rem}
+  .countdown-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}
 }
 </style>
 </head>
@@ -105,8 +177,10 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;
 let ENTRIES=[];
 let PROFILES={};
 let FOLDERS=[];
-const ALL_CMDS=['help','ls','cat','clear','whoami','neofetch','grep','pwd','echo','exit','quit'];
+const ALL_CMDS=['help','ls','cat','clear','whoami','neofetch','countdown','grep','pwd','echo','exit','quit'];
 const TOTAL_CLASSMATES=64;
+const GRADUATION_AT=new Date(2026,6,2,15,0,0,0).getTime();
+let countdownTicker=null;
 
 function toDisplayNameFromFolder(folder){
   return folder
@@ -284,6 +358,7 @@ function renderHelp(){
     ['cat data/<n>/profile.json','display a profile'],
     ['grep <query>','search by name or tech stack'],
     ['neofetch','system info (the important kind)'],
+    ['countdown','time left until graduation'],
     ['whoami','existential inquiry'],
     ['pwd','current directory'],
     ['echo <text>','echo text back'],
@@ -374,6 +449,83 @@ function renderNeofetch(){
   });
   id.appendChild(mk('div','',''));id.appendChild(cs);
   wrap.appendChild(ld);wrap.appendChild(id);$out.appendChild(wrap);
+}
+
+function stopCountdownTicker(){
+  if(countdownTicker!==null){
+    clearInterval(countdownTicker);
+    countdownTicker=null;
+  }
+}
+
+function renderCountdown(){
+  stopCountdownTicker();
+  const wrap=mk('div','countdown-wrap');
+  wrap.innerHTML=`
+    <div class="countdown-shell">
+      <div class="countdown-top">
+        <span class="countdown-title">Graduation Countdown</span>
+        <span class="countdown-target">2 July 2026, 3:00 PM</span>
+      </div>
+      <div class="countdown-grid">
+        <div class="countdown-cell" data-unit="days"><span class="countdown-num">0</span><span class="countdown-lab">Days</span></div>
+        <div class="countdown-cell" data-unit="hours"><span class="countdown-num">00</span><span class="countdown-lab">Hours</span></div>
+        <div class="countdown-cell" data-unit="mins"><span class="countdown-num">00</span><span class="countdown-lab">Mins</span></div>
+        <div class="countdown-cell" data-unit="secs"><span class="countdown-num">00</span><span class="countdown-lab">Secs</span></div>
+      </div>
+      <div class="countdown-msg"></div>
+    </div>`;
+  $out.appendChild(wrap);
+
+  const shell=wrap.querySelector('.countdown-shell');
+  const msgEl=wrap.querySelector('.countdown-msg');
+  const units={
+    days:wrap.querySelector('[data-unit="days"]'),
+    hours:wrap.querySelector('[data-unit="hours"]'),
+    mins:wrap.querySelector('[data-unit="mins"]'),
+    secs:wrap.querySelector('[data-unit="secs"]'),
+  };
+  const nums={
+    days:units.days.querySelector('.countdown-num'),
+    hours:units.hours.querySelector('.countdown-num'),
+    mins:units.mins.querySelector('.countdown-num'),
+    secs:units.secs.querySelector('.countdown-num'),
+  };
+  const prev={days:null,hours:null,mins:null,secs:null};
+
+  const paint=(key,val)=>{
+    const txt=key==='days'?String(val):String(val).padStart(2,'0');
+    if(prev[key]===txt)return;
+    nums[key].textContent=txt;
+    units[key].classList.remove('tick');
+    void units[key].offsetWidth;
+    units[key].classList.add('tick');
+    prev[key]=txt;
+  };
+
+  const update=()=>{
+    const diff=GRADUATION_AT-Date.now();
+    if(diff<=0){
+      shell.classList.add('done');
+      msgEl.textContent='Successfuly Graduated Alhamdulellah';
+      stopCountdownTicker();
+      return;
+    }
+    shell.classList.remove('done');
+    msgEl.textContent='';
+    const totalSeconds=Math.floor(diff/1000);
+    const days=Math.floor(totalSeconds/86400);
+    const hours=Math.floor((totalSeconds%86400)/3600);
+    const mins=Math.floor((totalSeconds%3600)/60);
+    const secs=totalSeconds%60;
+    paint('days',days);
+    paint('hours',hours);
+    paint('mins',mins);
+    paint('secs',secs);
+  };
+
+  update();
+  if(GRADUATION_AT>Date.now())countdownTicker=setInterval(update,1000);
 }
 
 async function renderRubbish() {
@@ -614,6 +766,9 @@ function execCmd(raw){
     case'neofetch':
       renderNeofetch();
       break;
+    case'countdown':
+      renderCountdown();
+      break;
     case'rubbish':
       renderRubbish();
       return false;
@@ -632,10 +787,14 @@ function execCmd(raw){
       break;
     case'clear':
     case'cls':
+      stopCountdownTicker();
       $out.innerHTML='';
+      initInput();
+      scrollBot();
       return false;
     case'exit':
     case'quit':
+      stopCountdownTicker();
       aln(`<span class="dim">logout</span>`);aln('');
       aln(`<span class="gb">You can close the tab, but the memories stay.</span>`);
       aln(`<span class="dim">Reconnecting...</span>`);
